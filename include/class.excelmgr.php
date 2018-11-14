@@ -1,5 +1,10 @@
 <?php
 
+define( 'DB_HOST', 'localhost' );
+define( 'DB_USER', 'root' );
+define( 'DB_PASS', '' );
+define( 'DB_NAME', 'university_ranking' );
+
 include_once( './include/classes/PHPExcel.php' );
 include_once( './include/classes/class.db.php' );
 
@@ -30,45 +35,61 @@ class ExcelManagement {
         }
     }
 
+    private function table_exists( $name ) {
+        $result = $this->db->get_row( "SHOW TABLES LIKE '{$name}'" );
+        if ( $result ) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
     private function checkCategory( $name ) {
         $valid_name = str_replace( "'" , "\'", $name );
-        if ($row = $this->db->get_row( "SELECT id FROM category WHERE name = '{$valid_name}'" ) ) {
-            return (int)$row[0];
-        } else {
-            $this->db->insert( 'category' , array( 'name' => $valid_name, ));
-            return $this->db->lastid();
+        if ( $this->table_exists('category') ) {
+            if ($row = $this->db->get_row( "SELECT id FROM category WHERE name = '{$valid_name}'" ) ) {
+                return (int)$row[0];
+            } else {
+                $this->db->insert( 'category' , array( 'name' => $valid_name, ));
+                return $this->db->lastid();
+            }
         }
+        return 0;
     }
 
     private function checkSubject( $category_id, $name ) {
         $valid_name = str_replace( "'" , "\'", $name );
-        if ( strtolower($valid_name) != 'ranking' ) {
-            if ($row = $this->db->get_row( "SELECT id FROM subject WHERE name = '{$valid_name}' AND category_id = '{$category_id}'" ) ) {
-                return (int)$row[0];
-            } else {
-                $this->db->insert( 'subject' , array( 'name' => $valid_name, 'category_id' => $category_id, ));
-                return $this->db->lastid();
+        if ( $this->table_exists('subject') ) {
+            if ( strtolower($valid_name) != 'ranking' ) {
+                if ($row = $this->db->get_row( "SELECT id FROM subject WHERE name = '{$valid_name}' AND category_id = '{$category_id}'" ) ) {
+                    return (int)$row[0];
+                } else {
+                    $this->db->insert( 'subject' , array( 'name' => $valid_name, 'category_id' => $category_id, ));
+                    return $this->db->lastid();
+                }
             }
         }
     }
 
     private function checkData( $category_id, $subject_ids, $subject_names, $data ) {
         $insert_count = 0;
-        if ( $data[0] ) {
-            $rank_value = $data[0];
-            for ( $column = 1; $column < count($data); $column++ ) {
-                if ( $column <= count($subject_ids) && $column <= count($subject_names) ) {
-                    $valid_value = str_replace( "'" , "\'", $data[$column] );
-                    if ( $subject_names[$column] && $valid_value ) {
-                        if ( strtolower($subject_names[$column]) == 'ranking' ) {
-                            $rank_value = $valid_value;
-                        } else {
-                            $row = $this->db->get_row( "SELECT id FROM ranking_data WHERE value = '{$valid_value}' AND rank_value = '{$rank_value}' AND category_id = '{$category_id}' AND subject_id = '{$subject_ids[$column - 1]}'" );
-                            if ( !$row ) {
-                                $this->db->insert( 'ranking_data' , array( 'rank_value' => $rank_value, 'value' => $valid_value, 'category_id' => $category_id, 'subject_id' => $subject_ids[$column - 1], ));
-                                $insert_count = $insert_count + 1;
-                            }                        
-                            $rank_value = $data[0];
+        if ( $this->table_exists('ranking_data') ) {
+            if ( $data[0] ) {
+                $rank_value = $data[0];
+                for ( $column = 1; $column < count($data); $column++ ) {
+                    if ( $column <= count($subject_ids) && $column <= count($subject_names) ) {
+                        $valid_value = str_replace( "'" , "\'", $data[$column] );
+                        if ( $subject_names[$column] && $valid_value ) {
+                            if ( strtolower($subject_names[$column]) == 'ranking' ) {
+                                $rank_value = $valid_value;
+                            } else {
+                                $row = $this->db->get_row( "SELECT id FROM ranking_data WHERE value = '{$valid_value}' AND rank_value = '{$rank_value}' AND category_id = '{$category_id}' AND subject_id = '{$subject_ids[$column - 1]}'" );
+                                if ( !$row ) {
+                                    $this->db->insert( 'ranking_data' , array( 'rank_value' => $rank_value, 'value' => $valid_value, 'category_id' => $category_id, 'subject_id' => $subject_ids[$column - 1], ));
+                                    $insert_count = $insert_count + 1;
+                                }                        
+                                $rank_value = $data[0];
+                            }
                         }
                     }
                 }
@@ -95,6 +116,22 @@ class ExcelManagement {
             $objPHPExcel = $objReader->load( $fileName );
         } catch ( Exception $e) {
             $response['data'] = "Error loading file: '" . $fileName . "' " . $e->getMessage();
+            return $response;
+        }
+
+        if ( !$this->table_exists('category') ) {
+            $response['status'] = "fail";
+            $response['data'] = "The category table does not exist!";
+            return $response;
+        }
+        if ( !$this->table_exists('subject') ) {
+            $response['status'] = "fail";
+            $response['data'] = "The subject table does not exist!";
+            return $response;
+        }
+        if ( !$this->table_exists('ranking_data') ) {
+            $response['status'] = "fail";
+            $response['data'] = "The ranking_data table does not exist!";
             return $response;
         }
 
@@ -127,20 +164,28 @@ class ExcelManagement {
     }
 
     public function allCategory() {
-        return $this->db->get_results( "SELECT id, name FROM category;" );
+        if ( $this->table_exists('category') ) {
+            return $this->db->get_results( "SELECT id, name FROM category;" );
+        }
+        return [];
     }
 
     public function getSubjects( $category_id ) {
-        return $this->db->get_results( "SELECT id, name FROM subject WHERE category_id= '{$category_id}';" );
+        if ( $this->table_exists('subject') ) {
+            return $this->db->get_results( "SELECT id, name FROM subject WHERE category_id= '{$category_id}';" );
+        }
+        return [];
     }
 
     public function getSubjectNames( $category_id ) {
         $result = [];
-        $subject_names = $this->db->get_results( "SELECT id, name FROM subject WHERE category_id= '{$category_id}';" );
-        if ( $subject_names ) {
-            if ( count($subject_names) ) {
-                foreach ( $subject_names as $subject_name ) {
-                    $result[] = $subject_name['name'];
+        if ( $this->table_exists('subject') ) {
+            $subject_names = $this->db->get_results( "SELECT id, name FROM subject WHERE category_id= '{$category_id}';" );
+            if ( $subject_names ) {
+                if ( count($subject_names) ) {
+                    foreach ( $subject_names as $subject_name ) {
+                        $result[] = $subject_name['name'];
+                    }
                 }
             }
         }
@@ -148,7 +193,10 @@ class ExcelManagement {
     }
 
     public function getRankingData( $category_id, $subject_id ) {        
-        return $this->db->get_results( "SELECT id, rank_value, value FROM ranking_data WHERE category_id= '{$category_id}' AND subject_id= '{$subject_id}' ORDER BY rank_value ASC;" );
+        if ( $this->table_exists('ranking_data') ) {
+            return $this->db->get_results( "SELECT id, rank_value, value FROM ranking_data WHERE category_id= '{$category_id}' AND subject_id= '{$subject_id}' ORDER BY rank_value ASC;" );
+        }
+        return [];
     }
 
     public function getRankingDataByCategory( $category_id ) {
@@ -158,18 +206,22 @@ class ExcelManagement {
         $ranking_indexs = [];
         $max_rows = $index = 0;
         $min_rank = $focus_index = 1;
-        foreach ( $subjects as $subject ) {
-            $ranking_data = $this->getRankingData( $category_id,  $subject['id'] );
-            if ( $ranking_data ) {
-                if ( $max_rows < count($ranking_data) ) {
-                    $max_rows = count($ranking_data);
-                    $focus_index = $index;
+        if ( $subjects ) {
+            if ( count($subjects) ) {
+                foreach ( $subjects as $subject ) {
+                    $ranking_data = $this->getRankingData( $category_id,  $subject['id'] );
+                    if ( $ranking_data ) {
+                        if ( $max_rows < count($ranking_data) ) {
+                            $max_rows = count($ranking_data);
+                            $focus_index = $index;
+                        }
+                        $min_rank = ( $min_rank > $ranking_data[0]['rank_value'] ) ? $ranking_data[0]['rank_value'] : $min_rank;
+                    }
+                    $ranking_datas[] = $ranking_data;
+                    $ranking_indexs[] = 0;
+                    $index = $index + 1;
                 }
-                $min_rank = ( $min_rank > $ranking_data[0]['rank_value'] ) ? $ranking_data[0]['rank_value'] : $min_rank;
             }
-            $ranking_datas[] = $ranking_data;
-            $ranking_indexs[] = 0;
-            $index = $index + 1;
         }
         if ( $max_rows ) {
             $ranking_row = 0;
@@ -220,13 +272,21 @@ class ExcelManagement {
         $result .= "</tr>\n";
         $result .= "</thead>\n";
 
-        $result .= "<tbody>\n";        
-        foreach ( $ranking_datas as $ranking_data ) {
-            $result .= "<tr>\n";
-            foreach ( $ranking_data as $cell_data ) {
-                $result .= "<td>" . $cell_data . "</td>\n";
+        $result .= "<tbody>\n";
+        if ( $ranking_datas ) {
+            if ( count( $ranking_datas ) ) {
+                foreach ( $ranking_datas as $ranking_data ) {
+                    $result .= "<tr>\n";
+                    if ( $ranking_data ) {
+                        if ( count( $ranking_data ) ) {
+                            foreach ( $ranking_data as $cell_data ) {
+                                $result .= "<td>" . $cell_data . "</td>\n";
+                            }
+                        }
+                    }
+                    $result .= "/<tr>\n";
+                }
             }
-            $result .= "/<tr>\n";
         }
         $result .= "</tbody>\n";
 

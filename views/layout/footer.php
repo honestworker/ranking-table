@@ -24,7 +24,7 @@
         <script src="assets/js/bootstrap.min.js"></script>
         <!-- custom js -->
         <?php
-            if (isset( $import_jss )) {
+            if ( isset( $import_jss ) ) {
                 foreach ( $import_jss as $import_js ) {
                     ?><script src="assets/js/<?php echo $import_js['dir'];?><?php echo $import_js['name'];?>.js"></script><?php
                 }

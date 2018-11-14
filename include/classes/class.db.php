@@ -280,8 +280,7 @@ class DB
              return false;
          }
      }
-    
-    
+
     /**
      * Count number of rows found matching a specific query
      *
