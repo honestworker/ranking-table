@@ -16,7 +16,7 @@
         <?php
             if (isset( $import_csss )) {
                 foreach ( $import_csss as $import_css ) {
-                    ?><link rel="stylesheet" href="assets/css/<?php echo $import_css->dir;?>/<?php echo $import_css->name;?>.css"><?php
+                    ?><link rel="stylesheet" href="assets/css/<?php echo $import_css['dir'];?><?php echo $import_css['name'];?>.css"><?php
                 }
             }
         ?>

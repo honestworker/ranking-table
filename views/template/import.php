@@ -1,6 +1,10 @@
 <!--================Import Area =================-->
-<section class="contact_area p_120">
+<section class="projects_area p_120">
     <div class="container">
+        <div class="main_title">
+			<h3>Import Excel File</h3>
+			<p>You can import excel file here.</p>
+		</div>
         <form class="row contact_form" id="importForm" method="POST" enctype="multipart/form-data">
             <div class="form-group">
                 <input type="file" id="importFile" class="form-control" name="importFile">

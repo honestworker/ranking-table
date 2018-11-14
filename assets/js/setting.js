@@ -30,7 +30,7 @@ $( document ).ready(function () {
             success: function ( data ) {
                 var response = JSON.parse( data );
                 alert( response.message );
-                if ( response.status == 'success' ) {                    
+                if ( response.status == 'success' ) {
                     importBtn.prop("disabled", false);
                     importBtn.text("Import");
                     $("#importFile").val("");

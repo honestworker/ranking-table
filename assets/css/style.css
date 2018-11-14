@@ -2775,14 +2775,10 @@ h6 {
 ============================================================================================ */
 /* Feature Area css
 ============================================================================================ */
-.feature_area {
-  background: #f9f9ff; }
-  .feature_area.feature_tow {
-    background: #fff; }
-    .feature_area.feature_tow .feature_item {
-      background: #f9f9ff; }
-      .feature_area.feature_tow .feature_item:hover {
-        background: #fff; }
+.feature_area { background: #f9f9ff; }
+.feature_area.feature_tow { background: #fff; }
+.feature_area.feature_tow .feature_item {background: #f9f9ff; }
+.feature_area.feature_tow .feature_item:hover { background: #fff; }
 
 .feature_inner {
   margin-bottom: -30px; }

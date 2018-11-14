@@ -4,21 +4,25 @@
 
     $response = array(
         'status' => 'fail',
-        'message' => '',
-        'data' => []
+        'data' => [],
     );
-
-    $excel_mgr = new ExcelManagement();
 
     if ( isset( $_POST['action'] )) {
         if ( $_POST['action'] == 'import' ) {
             if ( isset( $_FILES['importFile'] ) ) {
+                $excel_mgr = new ExcelManagement();
                 $response = $excel_mgr->importExcelData( $_FILES['importFile'] );
+            }
+        } else if ( $_POST['action'] == 'view' ) {
+            if ( isset( $_POST['category_id'] ) ) {
+                $excel_mgr = new ExcelManagement();
+                $response['status'] = 'success';
+                //$response['data'] = array('subjects' => $excel_mgr->getSubjectNames( $_POST['category_id'] ), 'data' => $excel_mgr->getRankingDataByCategory( $_POST['category_id'] ) );
+                $response['data'] = $excel_mgr->getTableContent( $_POST['category_id'] );
             }
         }
     } else {
-        $response['message'] = "You must specify the correct parameter.";
-        echo json_encode($response);
+        $response['data'] = "You must specify the correct parameter.";
     }
 
     echo json_encode($response);
